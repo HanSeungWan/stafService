@@ -47,6 +47,7 @@ public class MailSendService implements MailService {
 
         getEMLContents();
 
+        // service 이름을 STAF Service 에 등록된 이름과 동기 시켜야 한다.
         final String SERVICE = "DAOUMAIL";
 
         return handle.submit2(this.stafServer, SERVICE, prepareRequest());
@@ -70,19 +71,19 @@ public class MailSendService implements MailService {
 
     /**
      * STAF DAOUMAIL SERVICE 를 이용한 메일 전송
-     * * @return STAF RESULT CODE -> http://staf.sourceforge.net/current/STAFRC.htm (참고)
+     * * @return SMTP 메일 전송 결과에 따른 RETURN CODE
      */
-    public boolean sendMail(MailInfo mailInfo) {
+    public int sendMail(MailInfo mailInfo) {
 
         this.mailInfo = mailInfo;
         STAFResult result = submitRequest();
 
         if (result.rc != 0) {
             System.out.println("ERROR: MAIL SEND Result failed RC: " + result.rc + ", Result: " + result.result);
-            return false;
+            return result.rc;
         } else {
             System.out.println("MAIL SEND Result: " + result.result);
-            return true;
+            return result.rc;
         }
     }
 
@@ -129,7 +130,7 @@ public class MailSendService implements MailService {
      *
      * @return sndMail service 실행 결과
      */
-    public boolean service(MailInfo mailInfo) {
+    public int service(MailInfo mailInfo) {
 
         return sendMail(mailInfo);
     }

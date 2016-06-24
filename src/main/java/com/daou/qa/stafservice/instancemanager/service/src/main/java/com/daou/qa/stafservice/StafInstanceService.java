@@ -30,7 +30,8 @@ public class StafInstanceService implements STAFServiceInterfaceLevel30 {
 
     private static final int kDeviceInvalidSerialNumber = 7008;
 
-    private STAFCommandParser fInstanceHandlerParser;
+    private STAFCommandParser fInstanceHandlerDeleteParser;
+    private STAFCommandParser fInstanceHandlerCreateParser;
 
     public STAFResult init(InitInfo initInfo) {
 
@@ -41,9 +42,34 @@ public class StafInstanceService implements STAFServiceInterfaceLevel30 {
             return new STAFResult(STAFResult.STAFRegistrationError, e.toString());
         }
 
-        this.fInstanceHandlerParser = new STAFCommandParser();
 
-        //파서 정의 할 부분
+        //Delete 파서 정의
+        this.fInstanceHandlerDeleteParser = new STAFCommandParser();
+
+        fInstanceHandlerDeleteParser.addOption("DELETE", 1, STAFCommandParser.VALUEALLOWED);
+        fInstanceHandlerDeleteParser.addOption("ENDPOINT", 1, STAFCommandParser.VALUEREQUIRED);
+        fInstanceHandlerDeleteParser.addOption("USER", 1, STAFCommandParser.VALUEREQUIRED);
+        fInstanceHandlerDeleteParser.addOption("PASSWORD", 1, STAFCommandParser.VALUEREQUIRED);
+        fInstanceHandlerDeleteParser.addOption("TENANTNAME", 1, STAFCommandParser.VALUEREQUIRED);
+        fInstanceHandlerDeleteParser.addOption("INSTANCENAME", 1, STAFCommandParser.VALUEREQUIRED);
+
+        //Create 파서 정의
+        this.fInstanceHandlerCreateParser = new STAFCommandParser();
+
+        fInstanceHandlerCreateParser.addOption("CREATE", 1, STAFCommandParser.VALUEALLOWED);
+        fInstanceHandlerCreateParser.addOption("ENDPOINT", 1, STAFCommandParser.VALUEREQUIRED);
+        fInstanceHandlerCreateParser.addOption("USER", 1, STAFCommandParser.VALUEREQUIRED);
+        fInstanceHandlerCreateParser.addOption("PASSWORD", 1, STAFCommandParser.VALUEREQUIRED);
+        fInstanceHandlerCreateParser.addOption("TENANTNAME", 1, STAFCommandParser.VALUEREQUIRED);
+        fInstanceHandlerCreateParser.addOption("INSTANCENAME", 1, STAFCommandParser.VALUEREQUIRED);
+        fInstanceHandlerCreateParser.addOption("FLAVORID", 1, STAFCommandParser.VALUEREQUIRED);
+        fInstanceHandlerCreateParser.addOption("KEYPAIRNAME", 1, STAFCommandParser.VALUEREQUIRED);
+        fInstanceHandlerCreateParser.addOption("VOLUMENAME", 1, STAFCommandParser.VALUEREQUIRED);
+        fInstanceHandlerCreateParser.addOption("SNAPSHOTVOLUMEID", 1, STAFCommandParser.VALUEREQUIRED);
+        fInstanceHandlerCreateParser.addOption("PORTIPADDR", 1, STAFCommandParser.VALUEREQUIRED);
+        fInstanceHandlerCreateParser.addOption("FLOATINGIPADDR", 1, STAFCommandParser.VALUEREQUIRED);
+        fInstanceHandlerCreateParser.addOption("NETWORKID", 1, STAFCommandParser.VALUEREQUIRED);
+        fInstanceHandlerCreateParser.addOption("SUBNETID", 1, STAFCommandParser.VALUEREQUIRED);
 
 
         // fLineSep 정의
@@ -94,8 +120,10 @@ public class StafInstanceService implements STAFServiceInterfaceLevel30 {
 
 
             //커맨드에 따라서 어떤동작을 할지 정의하는 부분
-            if (actionLC.equals("")) {
-                return handleinstance(requestInfo);
+            if (actionLC.equals("delete")) {
+                return handleDeleteInstance(requestInfo);
+            } else if (actionLC.equals("create")) {
+                return handleCreateInstance(requestInfo);
             } else if (actionLC.equals("help")) {
                 return handleHelp(requestInfo);
             } else {
@@ -149,37 +177,261 @@ public class StafInstanceService implements STAFServiceInterfaceLevel30 {
         return new STAFResult(STAFResult.Ok, sHelpMsg);
     }
 
-    private STAFResult handleinstance(STAFServiceInterfaceLevel30.RequestInfo command) {
+    private STAFResult handleDeleteInstance(STAFServiceInterfaceLevel30.RequestInfo command) {
 
         STAFResult trustResult = STAFUtil.validateTrust(
                 2, fServiceName, "instance", fLocalMachineName, command);
 
         if (trustResult.rc != STAFResult.Ok) return trustResult;
 
-        STAFCommandParseResult parsedRequest = fInstanceHandlerParser.parse((command.request));
+        STAFCommandParseResult parsedRequest = fInstanceHandlerDeleteParser.parse((command.request));
 
+        //command request 잘 들어왔는지 확인
         if (parsedRequest.rc != STAFResult.Ok) {
             return new STAFResult(STAFResult.InvalidRequestString, parsedRequest.errorBuffer);
         }
 
         //옵션벨류에 따른 파싱 구현하는 부분
+
+        //endpoing옵션 파싱
         STAFResult res = STAFUtil.resolveRequestVar(
-                parsedRequest.optionValue(""), fHandle, command.requestNumber
+                parsedRequest.optionValue("endpoint"), fHandle, command.requestNumber
         );
 
         //파싱이 잘 되었나 검사
         if (res.rc != STAFResult.Ok) return res;
 
-        //temp == 파싱 된 값
-        String temp = res.result;
+        String endpoint = res.result;
 
+        //user옵션 파싱
+        res = STAFUtil.resolveRequestVar(
+                parsedRequest.optionValue("user"), fHandle, command.requestNumber
+        );
 
-        String logMsg = "Instance service success";
+        //파싱이 잘 되었나 검사
+        if (res.rc != STAFResult.Ok) return res;
+
+        String user = res.result;
+
+        //password옵션 파싱
+        res = STAFUtil.resolveRequestVar(
+                parsedRequest.optionValue("password"), fHandle, command.requestNumber
+        );
+
+        //파싱이 잘 되었나 검사
+        if (res.rc != STAFResult.Ok) return res;
+
+        String password = res.result;
+
+        //tenantName옵션 파싱
+        res = STAFUtil.resolveRequestVar(
+                parsedRequest.optionValue("tenantName"), fHandle, command.requestNumber
+        );
+
+        //파싱이 잘 되었나 검사
+        if (res.rc != STAFResult.Ok) return res;
+
+        String tenantName = res.result;
+
+        //instanceName옵션 파싱
+        res = STAFUtil.resolveRequestVar(
+                parsedRequest.optionValue("instancename"), fHandle, command.requestNumber
+        );
+
+        //파싱이 잘 되었나 검사
+        if (res.rc != STAFResult.Ok) return res;
+
+        String instanceName = res.result;
+
+        OSBuilderInfo osBuilderInfo = new OSBuilderInfo();
+
+        osBuilderInfo.setEndpoint(endpoint);
+        osBuilderInfo.setUser(user);
+        osBuilderInfo.setPassword(password);
+        osBuilderInfo.setTenantName(tenantName);
+
+        try {
+            InstanceHandler instanceHandler = new InstanceHandler(osBuilderInfo);
+            instanceHandler.deleteInstance(instanceName);
+        } catch (InstanceHandlerException e) {
+            String logMsg = "instancedelete service fail";
+            int deleteinstancefailcode = 101;
+            return new STAFResult(deleteinstancefailcode, logMsg);
+        }
+
+        String logMsg = "Instancedelete service success";
 
         return new STAFResult(STAFResult.Ok, logMsg);
 
     }
 
+    private STAFResult handleCreateInstance(STAFServiceInterfaceLevel30.RequestInfo command) {
+        STAFResult trustResult = STAFUtil.validateTrust(
+                2, fServiceName, "instance", fLocalMachineName, command);
+
+        if (trustResult.rc != STAFResult.Ok) return trustResult;
+
+        STAFCommandParseResult parsedRequest = fInstanceHandlerCreateParser.parse((command.request));
+
+        //command request 잘 들어왔는지 확인
+        if (parsedRequest.rc != STAFResult.Ok) {
+            return new STAFResult(STAFResult.InvalidRequestString, parsedRequest.errorBuffer);
+        }
+
+        //옵션벨류에 따른 파싱 구현하는 부분
+
+        //endpoing옵션 파싱
+        STAFResult res = STAFUtil.resolveRequestVar(
+                parsedRequest.optionValue("endpoint"), fHandle, command.requestNumber
+        );
+
+        //파싱이 잘 되었나 검사
+        if (res.rc != STAFResult.Ok) return res;
+
+        String endpoint = res.result;
+
+        //user옵션 파싱
+        res = STAFUtil.resolveRequestVar(
+                parsedRequest.optionValue("user"), fHandle, command.requestNumber
+        );
+
+        //파싱이 잘 되었나 검사
+        if (res.rc != STAFResult.Ok) return res;
+
+        String user = res.result;
+
+        //password옵션 파싱
+        res = STAFUtil.resolveRequestVar(
+                parsedRequest.optionValue("password"), fHandle, command.requestNumber
+        );
+
+        //파싱이 잘 되었나 검사
+        if (res.rc != STAFResult.Ok) return res;
+
+        String password = res.result;
+
+        //tenantName옵션 파싱
+        res = STAFUtil.resolveRequestVar(
+                parsedRequest.optionValue("tenantName"), fHandle, command.requestNumber
+        );
+
+        //파싱이 잘 되었나 검사
+        if (res.rc != STAFResult.Ok) return res;
+
+        String tenantName = res.result;
+
+        //instancename옵션 파싱
+        res = STAFUtil.resolveRequestVar(
+                parsedRequest.optionValue("instancename"), fHandle, command.requestNumber
+        );
+
+        //파싱이 잘 되었나 검사
+        if (res.rc != STAFResult.Ok) return res;
+
+        String instanceName = res.result;
+
+        //flavorId옵션 파싱
+        res = STAFUtil.resolveRequestVar(
+                parsedRequest.optionValue("flavorid"), fHandle, command.requestNumber
+        );
+
+        //파싱이 잘 되었나 검사
+        if (res.rc != STAFResult.Ok) return res;
+
+        String flavorId = res.result;
+
+        //ketPairName옵션 파싱
+        res = STAFUtil.resolveRequestVar(
+                parsedRequest.optionValue("keypairname"), fHandle, command.requestNumber
+        );
+
+        //파싱이 잘 되었나 검사
+        if (res.rc != STAFResult.Ok) return res;
+
+        String ketPairName = res.result;
+
+        //volumeName옵션 파싱
+        res = STAFUtil.resolveRequestVar(
+                parsedRequest.optionValue("volumename"), fHandle, command.requestNumber
+        );
+
+        //파싱이 잘 되었나 검사
+        if (res.rc != STAFResult.Ok) return res;
+
+        String volumeName = res.result;
+
+        //snapshotVolumeID옵션 파싱
+        res = STAFUtil.resolveRequestVar(
+                parsedRequest.optionValue("snapshotVolumeid"), fHandle, command.requestNumber
+        );
+
+        //파싱이 잘 되었나 검사
+        if (res.rc != STAFResult.Ok) return res;
+
+        String snapshotVolumeId = res.result;
+
+        //portIpAddr옵션 파싱
+        res = STAFUtil.resolveRequestVar(
+                parsedRequest.optionValue("portipaddr"), fHandle, command.requestNumber
+        );
+
+        //파싱이 잘 되었나 검사
+        if (res.rc != STAFResult.Ok) return res;
+
+        String portIpAddr = res.result;
+
+        //floatingIpAddr옵션 파싱
+        res = STAFUtil.resolveRequestVar(
+                parsedRequest.optionValue("floatingipaddr"), fHandle, command.requestNumber
+        );
+
+        //파싱이 잘 되었나 검사
+        if (res.rc != STAFResult.Ok) return res;
+
+        String floatingIpAddr = res.result;
+
+        //networkId옵션 파싱
+        res = STAFUtil.resolveRequestVar(
+                parsedRequest.optionValue("networkid"), fHandle, command.requestNumber
+        );
+
+        //파싱이 잘 되었나 검사
+        if (res.rc != STAFResult.Ok) return res;
+
+        String networkId = res.result;
+
+        //subnetId옵션 파싱
+        res = STAFUtil.resolveRequestVar(
+                parsedRequest.optionValue("subnetid"), fHandle, command.requestNumber
+        );
+
+        //파싱이 잘 되었나 검사
+        if (res.rc != STAFResult.Ok) return res;
+
+        String subnetId = res.result;
+
+        OSBuilderInfo osBuilderInfo = new OSBuilderInfo();
+
+        osBuilderInfo.setEndpoint(endpoint);
+        osBuilderInfo.setUser(user);
+        osBuilderInfo.setPassword(password);
+        osBuilderInfo.setTenantName(tenantName);
+
+        try {
+            InstanceHandler instanceHandler = new InstanceHandler(osBuilderInfo);
+            instanceHandler.createInstance(instanceName, flavorId, ketPairName, volumeName, snapshotVolumeId, portIpAddr, floatingIpAddr, networkId, subnetId);
+        } catch (InstanceHandlerException e) {
+            String logMsg = "instancecreate service fail";
+            int createinstancefailcode = 102;
+            return new STAFResult(createinstancefailcode, logMsg);
+        }
+
+        String logMsg = "Instancecreate service success";
+
+        return new STAFResult(STAFResult.Ok, logMsg);
+
+
+    }
 
     public STAFResult term() {
 

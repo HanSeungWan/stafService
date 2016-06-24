@@ -1,7 +1,7 @@
 package com.daou.qa.stafservice;
 
 /**
- * Created by byungshik on 2016. 6. 20..
+ * Created by byungshik on 2016. 6. 20.
  */
 public class OSBuilderInfo {
 

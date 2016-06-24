@@ -49,10 +49,10 @@ public class DaouMail implements STAFServiceInterfaceLevel30 {
         // SEND parser
 
         this.fSendParser.addOption("SEND", 1, STAFCommandParser.VALUEALLOWED);
-        this.fSendParser.addOption("MAILSERVER", 2, STAFCommandParser.VALUEALLOWED);
-        this.fSendParser.addOption("FROM", 3, STAFCommandParser.VALUEALLOWED);
-        this.fSendParser.addOption("TO", 4, STAFCommandParser.VALUEALLOWED);
-        this.fSendParser.addOption("CONTENTS", 5, STAFCommandParser.VALUEALLOWED);
+        this.fSendParser.addOption("MAILSERVER", 1, STAFCommandParser.VALUEREQUIRED);
+        this.fSendParser.addOption("FROM", 1, STAFCommandParser.VALUEREQUIRED);
+        this.fSendParser.addOption("TO", 1, STAFCommandParser.VALUEREQUIRED);
+        this.fSendParser.addOption("CONTENTS", 1, STAFCommandParser.VALUEREQUIRED);
 
         STAFResult res = new STAFResult();
 
@@ -214,30 +214,22 @@ public class DaouMail implements STAFServiceInterfaceLevel30 {
 
         // Create temp eml file
 
-        final String CREATE_FILE_PATH = "\\TEMP_MAIL.eml";
-
-        mailer.makeEMLFile(CREATE_FILE_PATH, contents);
-
-        if(!hasFile(CREATE_FILE_PATH)) return new STAFResult(STAFResult.FileOpenError, "TEMP FILE IS NOT CREATED");
-
-        // set mailinfo
-
-        mailInfo.setEmlFilePath(CREATE_FILE_PATH);
+        mailInfo.setContents(contents);
         mailInfo.setTo(to);
         mailInfo.setFrom(from);
         mailInfo.setMailServer(mailServer);
 
         // Send Mail
 
-        mailer.send(mailInfo);
+        SendMailResult result = mailer.send(mailInfo);
 
-        String logMsg = "mail send success ";
+        String logMsg = result.result;
 
         fHandle.submit2(
                 "local", "LOG", "LOG MACHINE LOGNAME " + fServiceName +
                         " LEVEL info MESSAGE " + STAFUtil.wrapData(logMsg));
 
-        return new STAFResult(STAFResult.Ok, logMsg);
+        return new STAFResult(result.rc, logMsg);
     }
 
     public STAFResult term() {
@@ -271,18 +263,5 @@ public class DaouMail implements STAFServiceInterfaceLevel30 {
         STAFResult res = fHandle.submit2(
                 "local", "HELP", "UNREGISTER SERVICE " + fServiceName +
                         " ERROR " + errorNumber);
-    }
-
-    // Check has file
-
-    private boolean hasFile(String filePath) {
-
-        File file = new File(filePath);
-
-        if (file.isFile()) {
-            return true;
-        } else {
-            return false;
-        }
     }
 }

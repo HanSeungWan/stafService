@@ -18,6 +18,8 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <jdk.version>1.8</jdk.version>
         <lib.dir>lib</lib.dir>
         <jars.path>jars</jars.path>
@@ -40,7 +42,13 @@
             <version>3.0.0</version>
             <classifier>withdeps</classifier>
         </dependency>
+        <dependency>
+            <groupId>org.vngx</groupId>
+            <artifactId>vngx-jsch</artifactId>
+            <version>0.10</version>
+        </dependency>
     </dependencies>
+
 
     <build>
         <plugins>
