@@ -6,6 +6,10 @@ package com.daou.qa.stafservice;
  * Created by byungshik on 2016. 6. 20..
  */
 public class InstanceHandlerException extends Exception {
+    public InstanceHandlerException() {
+        super();
+    }
+
     public InstanceHandlerException(Exception e, String message) {
         super(message, e);
     }

@@ -8,14 +8,14 @@ public class MailInfo {
     private String mailServer;
     private String from;
     private String to;
-    private String emlFilePath;
+    private String contents;
 
-    public String getEmlFilePath() {
-        return emlFilePath;
+    public String getContents() {
+        return contents;
     }
 
-    public void setEmlFilePath(String emlFilePath) {
-        this.emlFilePath = emlFilePath;
+    public void setContents(String contents) {
+        this.contents = contents;
     }
 
     public String getMailServer() {

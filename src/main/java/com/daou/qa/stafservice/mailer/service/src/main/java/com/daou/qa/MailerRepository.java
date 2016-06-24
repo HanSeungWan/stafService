@@ -7,12 +7,5 @@ import java.util.Properties;
  */
 public abstract class MailerRepository {
 
-    boolean send(MailInfo mailInfo) {
-        return false;
-    }
-
-    private Properties setProps(MailInfo mailInfo) {
-        return null;
-    }
-
+    SendMailResult sendMail(MailInfo mailInfo) { return new SendMailResult(0, "OK"); }
 }
